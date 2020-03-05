@@ -25,6 +25,12 @@ namespace QFramework.TodoList
                 mModel.Completed = on;
                 SendEvent(UITodoListEvent.OnDataChanged);
             });
+
+            Button.onClick.AddListener(() =>
+            {
+                //SendEvent(UITodoListEvent.OnTodoitemSelected);
+                SendMsg(new OnTodoItemSelectedMsg(mModel));
+            });
         }
 
 		private void Awake()

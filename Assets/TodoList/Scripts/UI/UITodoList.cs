@@ -16,29 +16,63 @@ namespace QFramework.TodoList
     using System.Linq;
     using UnityEngine;
     using UnityEngine.UI;
-    
-    
+
+
+    public enum UITodoListState {
+        Create,
+        Modify,
+    }
+
     public class UITodoListData : QFramework.UIPanelData
     {
         public TodoList Model = new TodoList();
+
+        public UITodoListState State = UITodoListState.Create;
+
+        public TodoItem selectedItem = new TodoItem();
     }
 
     public enum UITodoListEvent
     {
         Start = QMgrID.UI,
         OnDataChanged,
+        OnTodoitemSelected,
         End,
     }
 
 
+    public class OnTodoItemSelectedMsg : QMsg
+    {
+        public TodoItem ItemData;
+
+        public OnTodoItemSelectedMsg(TodoItem itemData) : base((int)UITodoListEvent.OnTodoitemSelected)
+        {
+            ItemData = itemData;
+        }
+    }
+
     public partial class UITodoList : QFramework.UIPanel
     {
-        
+
+       
+
         protected override void ProcessMsg(int eventId, QFramework.QMsg msg)
         {
             if (eventId == (int)UITodoListEvent.OnDataChanged)
             {
                 onDataChanged();
+            }else
+            if (eventId == (int)UITodoListEvent.OnTodoitemSelected){
+                //AddNewTodo.text = "";
+                var selectedMsg = msg as OnTodoItemSelectedMsg;
+
+                Debug.Log(selectedMsg.ItemData.Content);
+
+                AddNewTodo.text = selectedMsg.ItemData.Content;
+
+                mData.State = UITodoListState.Modify;
+
+                mData.selectedItem = selectedMsg.ItemData;
             }
             //throw new System.NotImplementedException ();
         }
@@ -74,6 +108,7 @@ namespace QFramework.TodoList
             onDataChanged();
 
             RegisterEvent(UITodoListEvent.OnDataChanged);
+            RegisterEvent(UITodoListEvent.OnTodoitemSelected);
         }
         
         protected override void OnOpen(QFramework.IUIData uiData)
@@ -97,14 +132,26 @@ namespace QFramework.TodoList
             //base.RegisterUIEvent();
             AddNewTodo.onEndEdit.AddListener(content =>
             {
-                mData.Model.mTodoitem.Add(new TodoItem()
+                if (Input.GetKey(KeyCode.Return))
                 {
-                    Completed = false, Content = content
-                });
+                    if (mData.State == UITodoListState.Modify)
+                    {
+                        mData.selectedItem.Content = content;
+                        mData.State = UITodoListState.Create;
+                        mData.selectedItem = null;
+                    }
+                    else
+                    {
+                        mData.Model.mTodoitem.Add(new TodoItem()
+                        {
+                            Completed = false,
+                            Content = content
+                        });
+                    }
+                    onDataChanged();
 
-                onDataChanged();
-
-                AddNewTodo.text = "";
+                    AddNewTodo.text = "";
+                }
             });
 
             BtnHave.onClick.AddListener(()=> 
@@ -114,6 +161,8 @@ namespace QFramework.TodoList
                     Model = mData.Model
                 });
             });
+
+
         }
     }
 }
